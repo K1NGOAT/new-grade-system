@@ -8,10 +8,8 @@ struct Student {
 
 // MARK: - Core Functions
 
-/// Loads student data from a CSV file.
-/// - Returns: An array of `Student` objects.
 func loadStudents() -> [Student] {
-    let filePath = "./students.csv" // Ensure the file is in the working directory
+    let filePath = "./students.csv"
     guard FileManager.default.fileExists(atPath: filePath) else {
         print("CSV file not found!")
         return []
@@ -24,12 +22,12 @@ func loadStudents() -> [Student] {
 
         for line in lines where !line.isEmpty {
             let components = line.components(separatedBy: ",")
-            guard components.count >= 11 else { continue } // Ensure there are 11 components (name + 10 grades)
+            guard components.count >= 11 else { continue }
 
             let name = components[0].trimmingCharacters(in: .whitespaces)
             let grades = components[1...10].compactMap { Double($0.trimmingCharacters(in: .whitespaces)) }
 
-            guard grades.count == 10 else { continue } // Ensure exactly 10 grades
+            guard grades.count == 10 else { continue }
             students.append(Student(name: name, grades: grades))
         }
 
@@ -40,25 +38,21 @@ func loadStudents() -> [Student] {
     }
 }
 
-/// Calculates the average grade for a given array of grades.
 func calculateAverage(grades: [Double]) -> Double {
     guard !grades.isEmpty else { return 0.0 }
     return grades.reduce(0, +) / Double(grades.count)
 }
 
-/// Finds the average grade of the entire class.
 func calculateClassAverage(students: [Student]) -> Double {
     let allGrades = students.flatMap { $0.grades }
     return calculateAverage(grades: allGrades)
 }
 
-/// Finds the average grade of a specific assignment.
 func calculateAssignmentAverage(students: [Student], assignment: Int) -> Double {
     let assignmentGrades = students.compactMap { $0.grades[safe: assignment - 1] }
     return calculateAverage(grades: assignmentGrades)
 }
 
-/// Finds the student with the lowest average grade.
 func findLowestGrade(students: [Student]) -> (String, Double) {
     guard let student = students.min(by: { calculateAverage(grades: $0.grades) < calculateAverage(grades: $1.grades) }) else {
         return ("No students", 0.0)
@@ -66,7 +60,6 @@ func findLowestGrade(students: [Student]) -> (String, Double) {
     return (student.name, calculateAverage(grades: student.grades))
 }
 
-/// Finds the student with the highest average grade.
 func findHighestGrade(students: [Student]) -> (String, Double) {
     guard let student = students.max(by: { calculateAverage(grades: $0.grades) < calculateAverage(grades: $1.grades) }) else {
         return ("No students", 0.0)
@@ -74,7 +67,6 @@ func findHighestGrade(students: [Student]) -> (String, Double) {
     return (student.name, calculateAverage(grades: student.grades))
 }
 
-/// Filters students whose average grade falls within a specified range.
 func filterStudentsByGradeRange(students: [Student], minGrade: Double, maxGrade: Double) -> [Student] {
     return students.filter { student in
         let avg = calculateAverage(grades: student.grades)
@@ -104,15 +96,40 @@ func displayAllGradesAllStudents(students: [Student]) {
     }
 }
 
+// MARK: - Extra Credit Feature
+
+func changeAssignmentGrade(for students: inout [Student]) {
+    let name = getStudentName(students: students)
+    guard let index = students.firstIndex(where: { $0.name.lowercased() == name.lowercased() }) else {
+        print("Student not found.")
+        return
+    }
+
+    print("Enter assignment number (1-10):", terminator: " ")
+    guard let assignmentInput = readLine(), let assignment = Int(assignmentInput), (1...10).contains(assignment) else {
+        print("Invalid assignment number.")
+        return
+    }
+
+    print("Enter new grade for Assignment \(assignment):", terminator: " ")
+    guard let gradeInput = readLine(), let newGrade = Double(gradeInput) else {
+        print("Invalid grade input.")
+        return
+    }
+
+    students[index].grades[assignment - 1] = newGrade
+    print("Grade updated successfully for \(students[index].name).")
+}
+
 // MARK: - Input Handling
 
 func getMenuChoice() -> Int {
     while true {
-        print("\nEnter your choice (1-9):", terminator: " ")
-        if let input = readLine(), let choice = Int(input), (1...9).contains(choice) {
+        print("\nEnter your choice (1-10):", terminator: " ")
+        if let input = readLine(), let choice = Int(input), (1...10).contains(choice) {
             return choice
         }
-        print("Invalid option. Please enter a number between 1 and 9.")
+        print("Invalid option. Please enter a number between 1 and 10.")
     }
 }
 
@@ -132,8 +149,9 @@ func getStudentName(students: [Student]) -> String {
 }
 
 // MARK: - Main Program
+
 func main() {
-    let students = loadStudents()
+    var students = loadStudents()
 
     if students.isEmpty {
         print("No students loaded. Exiting program.")
@@ -155,7 +173,8 @@ func main() {
         6. Find the lowest grade in the class
         7. Find the highest grade of the class
         8. Filter students by grade range
-        9. Quit
+        9. Change a specific assignment grade for a student
+        10. Quit
         """)
 
         switch getMenuChoice() {
@@ -197,6 +216,8 @@ func main() {
                 }
             }
         case 9:
+            changeAssignmentGrade(for: &students)
+        case 10:
             print("Goodbye!")
             shouldQuit = true
         default:
@@ -206,6 +227,7 @@ func main() {
 }
 
 // MARK: - Helper Extensions
+
 extension Array {
     subscript(safe index: Int) -> Element? {
         return indices.contains(index) ? self[index] : nil
